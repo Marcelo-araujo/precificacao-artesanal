@@ -45,7 +45,7 @@ export default function Register({ onAuthSuccess }: RegisterProps) {
 
     try {
       // Caso de credenciais fictícias locais
-      const isPlaceholder = import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
+      const isPlaceholder = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
       
       if (isPlaceholder) {
         // Fallback mock para desenvolvimento local

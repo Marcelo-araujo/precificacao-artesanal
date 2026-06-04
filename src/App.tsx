@@ -92,7 +92,7 @@ function AppContent() {
   // Monitora a sessão de autenticação
   useEffect(() => {
     const checkUser = async () => {
-      const isPlaceholder = import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
+      const isPlaceholder = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
       
       if (isPlaceholder) {
         const savedUser = localStorage.getItem('precificaalim_user');
@@ -120,7 +120,7 @@ function AppContent() {
   }, []);
 
   const handleLogout = async () => {
-    const isPlaceholder = import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
+    const isPlaceholder = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
     if (isPlaceholder) {
       localStorage.removeItem('precificaalim_user');
       setUser(null);

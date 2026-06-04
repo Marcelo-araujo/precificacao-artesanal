@@ -226,7 +226,7 @@ export function useData(userId: string | null) {
   const [custosItens, setCustosItens] = useState<ItemCustoFixo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const isPlaceholder = import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
+  const isPlaceholder = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
 
   // 1. Carregar dados do banco ou do localStorage
   useEffect(() => {
