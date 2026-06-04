@@ -12,6 +12,7 @@ import TermsOfService from './pages/TermsOfService';
 import PrivacyBanner from './components/PrivacyBanner';
 import GDPRDashboard from './components/GDPRDashboard';
 import LandingPage from './pages/LandingPage';
+import TrialExpiredPaywall from './components/TrialExpiredPaywall';
 
 // Ícones
 import { 
@@ -24,6 +25,8 @@ function AppContent() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [trialExpired, setTrialExpired] = useState(false);
+  const [diasRestantes, setDiasRestantes] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'compras' | 'receitas' | 'config'>('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddInsumoModal, setShowAddInsumoModal] = useState(false);
@@ -118,6 +121,59 @@ function AppContent() {
 
     checkUser();
   }, []);
+
+  // Monitora e calcula o estado de expiração do período de avaliação do usuário
+  useEffect(() => {
+    if (user) {
+      const metadata = user.user_metadata || {};
+      const isTrial = metadata.is_trial;
+      const trialStartDate = metadata.trial_start_date;
+
+      if (isTrial && trialStartDate) {
+        const start = new Date(trialStartDate).getTime();
+        const now = new Date().getTime();
+        const diffTime = now - start;
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+        
+        // Limite de 3 dias
+        if (diffDays >= 3) {
+          setTrialExpired(true);
+          setDiasRestantes(0);
+        } else {
+          setTrialExpired(false);
+          setDiasRestantes(Math.max(0, Math.ceil(3 - diffDays)));
+        }
+      } else {
+        setTrialExpired(false);
+        setDiasRestantes(null);
+      }
+    } else {
+      setTrialExpired(false);
+      setDiasRestantes(null);
+    }
+  }, [user]);
+
+  const handleResetTrial = () => {
+    if (!user) return;
+    
+    // Atualiza o objeto de metadados localmente
+    const updatedUser = {
+      ...user,
+      user_metadata: {
+        ...user.user_metadata,
+        trial_start_date: new Date().toISOString()
+      }
+    };
+    
+    // Salva no localStorage caso seja mock
+    const isPlaceholder = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
+    if (isPlaceholder) {
+      localStorage.setItem('precificaalim_user', JSON.stringify(updatedUser));
+    }
+    
+    // Atualiza o estado do usuário
+    setUser(updatedUser);
+  };
 
   const handleLogout = async () => {
     const isPlaceholder = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
@@ -380,7 +436,7 @@ function AppContent() {
 
   return (
     <>
-      {user && (
+      {user && !trialExpired && (
         <header style={{ 
           position: 'sticky', 
           top: 0, 
@@ -416,6 +472,23 @@ function AppContent() {
             </nav>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              {diasRestantes !== null && (
+                <span style={{ 
+                  fontSize: '0.75rem', 
+                  fontWeight: 600, 
+                  color: 'hsl(var(--warning-h), var(--warning-s), 30%)', 
+                  backgroundColor: 'var(--warning-light)', 
+                  padding: '4px 8px', 
+                  borderRadius: '12px',
+                  border: '1px solid rgba(245, 158, 11, 0.2)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <Clock size={12} />
+                  Avaliação: {diasRestantes} {diasRestantes === 1 ? 'dia' : 'dias'} restante{diasRestantes === 1 ? '' : 's'}
+                </span>
+              )}
               <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{profile?.nome || user.email}</span>
               <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }}>
                 <LogOut size={14} /> Sair
@@ -434,8 +507,15 @@ function AppContent() {
           
           <Route path="/" element={
             user ? (
-              <div className="container">
-                {dataLoading ? (
+              trialExpired ? (
+                <TrialExpiredPaywall 
+                  user={user} 
+                  handleLogout={handleLogout} 
+                  onResetTrial={handleResetTrial} 
+                />
+              ) : (
+                <div className="container">
+                  {dataLoading ? (
                   <p style={{ textAlign: 'center', padding: '40px' }}>Carregando dados da sua cozinha...</p>
                 ) : (
                   <>
@@ -1892,7 +1972,7 @@ function AppContent() {
                   </>
                 )}
               </div>
-            ) : (
+            ) ) : (
               <LandingPage />
             )
           } />

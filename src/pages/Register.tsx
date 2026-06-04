@@ -47,13 +47,20 @@ export default function Register({ onAuthSuccess }: RegisterProps) {
       // Caso de credenciais fictícias locais
       const isPlaceholder = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
       
+      const isTrial = !paymentStatus || paymentStatus !== 'success';
+      const trialStartDate = isTrial ? new Date().toISOString() : null;
+
       if (isPlaceholder) {
         // Fallback mock para desenvolvimento local
         console.log('[Auth Fallback] Registrando usuário mock:', email);
         const mockUser = {
           id: 'mock-user-123',
           email,
-          user_metadata: { full_name: nome }
+          user_metadata: { 
+            full_name: nome,
+            is_trial: isTrial,
+            trial_start_date: trialStartDate
+          }
         };
         // Salva consentimento e dados do mock no localStorage
         localStorage.setItem('precificaalim_user', JSON.stringify(mockUser));
@@ -81,6 +88,8 @@ export default function Register({ onAuthSuccess }: RegisterProps) {
           options: {
             data: {
               full_name: nome,
+              is_trial: isTrial,
+              trial_start_date: trialStartDate
             }
           }
         });
@@ -138,6 +147,12 @@ export default function Register({ onAuthSuccess }: RegisterProps) {
           </div>
         )}
 
+        {bypassPaid && paymentStatus !== 'success' && (
+          <div className="alert-card alert-card-warning" style={{ fontSize: '0.85rem', padding: '12px 16px', borderLeft: '4px solid var(--warning)', backgroundColor: 'var(--warning-light)', color: 'hsl(var(--warning-h), var(--warning-s), 25%)', marginBottom: '20px', borderRadius: '8px' }}>
+            <strong>Modo Avaliador Ativo:</strong> Você terá acesso gratuito completo por <strong>3 dias</strong>. Após este período, será necessário assinar o plano Pro para continuar precificando.
+          </div>
+        )}
+
         {!bypassPaid && (
           <div className="alert-card alert-card-warning" style={{ fontSize: '0.85rem', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', borderLeft: '4px solid var(--primary)', backgroundColor: 'var(--primary-light)', color: 'hsl(var(--primary-h), var(--primary-s), 25%)', marginBottom: '20px', borderRadius: '8px', textAlign: 'left' }}>
             <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Acesso Restrito a Assinantes</div>
@@ -147,7 +162,7 @@ export default function Register({ onAuthSuccess }: RegisterProps) {
                 Assinar Plano Pro (R$ 19,90/mês)
               </a>
               <button type="button" className="btn btn-secondary" onClick={() => setBypassPaid(true)} style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
-                Prosseguir como Avaliador
+                Prosseguir como Avaliador (3 dias grátis)
               </button>
             </div>
           </div>

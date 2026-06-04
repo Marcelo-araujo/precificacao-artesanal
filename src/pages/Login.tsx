@@ -25,11 +25,28 @@ export default function Login({ onAuthSuccess }: LoginProps) {
       if (isPlaceholder) {
         // Fallback mock
         console.log('[Auth Fallback] Autenticando usuário mock:', email);
-        const mockUser = {
+        const savedUserStr = localStorage.getItem('precificaalim_user');
+        let mockUser = {
           id: 'mock-user-123',
           email,
-          user_metadata: { full_name: 'Artesão Confeiteiro' }
+          user_metadata: { 
+            full_name: 'Artesão Confeiteiro',
+            is_trial: true,
+            trial_start_date: new Date().toISOString()
+          }
         };
+        
+        if (savedUserStr) {
+          try {
+            const parsed = JSON.parse(savedUserStr);
+            if (parsed && parsed.email === email) {
+              mockUser = parsed;
+            }
+          } catch (e) {
+            console.error('Erro ao fazer parse do usuário mock:', e);
+          }
+        }
+        
         localStorage.setItem('precificaalim_user', JSON.stringify(mockUser));
         onAuthSuccess(mockUser);
         navigate('/');
