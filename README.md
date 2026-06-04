@@ -1,6 +1,6 @@
 # PrecificaAlim - Precificação Inteligente para Alimentação Artesanal
 
-O **PrecificaAlim** é um sistema web moderno e responsivo desenvolvido especialmente para confeiteiros e produtores de alimentação artesanal gerenciarem seus custos de insumos, embalagens, mão de obra e taxas fixas de forma prática e em conformidade com a LGPD.
+O **Precifica+** é um sistema web moderno e responsivo desenvolvido especialmente para confeiteiros e produtores de alimentação artesanal gerenciarem seus custos de insumos, embalagens, mão de obra e taxas fixas de forma prática e em conformidade com a LGPD.
 
 O sistema calcula automaticamente o custo total de receitas, custo unitário (por porção e por peso) e sugere o preço ideal de venda utilizando as lógicas e fórmulas exatas da sua planilha de precificação.
 
