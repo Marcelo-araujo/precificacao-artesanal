@@ -48,7 +48,7 @@ export default function GDPRDashboard({ userId, onAccountDeleted }: GDPRDashboar
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullData, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `meus-dados-precificaalim-${userId.slice(0, 8)}.json`);
+      downloadAnchor.setAttribute("download", `meus-dados-precificamais-${userId.slice(0, 8)}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();

@@ -17,9 +17,19 @@ export default function Register({ onAuthSuccess }: RegisterProps) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Verificação de assinatura Stripe (via query param)
+  const params = new URLSearchParams(window.location.search);
+  const paymentStatus = params.get('payment');
+  const [bypassPaid, setBypassPaid] = useState(paymentStatus === 'success');
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (!bypassPaid) {
+      setErrorMsg('Você precisa de uma assinatura ativa para criar sua conta. Assine acima ou utilize a opção do avaliador para prosseguir.');
+      return;
+    }
 
     if (password !== confirmPassword) {
       setErrorMsg('As senhas não coincidem.');
@@ -118,13 +128,28 @@ export default function Register({ onAuthSuccess }: RegisterProps) {
           <div style={{ display: 'inline-flex', padding: '12px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', marginBottom: '12px' }}>
             <ShieldCheck size={32} />
           </div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Criar sua Conta</h2>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Criar sua Conta no Precifica+</h2>
           <p style={{ fontSize: '0.875rem', marginTop: '6px' }}>Sua jornada de precificação inteligente começa aqui.</p>
         </div>
 
         {errorMsg && (
           <div className="alert-card alert-card-danger" style={{ fontSize: '0.875rem', padding: '12px 16px' }}>
             {errorMsg}
+          </div>
+        )}
+
+        {!bypassPaid && (
+          <div className="alert-card alert-card-warning" style={{ fontSize: '0.85rem', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', borderLeft: '4px solid var(--primary)', backgroundColor: 'var(--primary-light)', color: 'hsl(var(--primary-h), var(--primary-s), 25%)', marginBottom: '20px', borderRadius: '8px', textAlign: 'left' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Acesso Restrito a Assinantes</div>
+            <p style={{ margin: 0, lineHeight: 1.4 }}>O Precifica+ requer uma assinatura ativa para o cadastro de novas contas de cozinha.</p>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+              <a href="https://buy.stripe.com/eVq00cbY28KW6IofCn8og00" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.75rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+                Assinar Plano Pro (R$ 19,90/mês)
+              </a>
+              <button type="button" className="btn btn-secondary" onClick={() => setBypassPaid(true)} style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
+                Prosseguir como Avaliador
+              </button>
+            </div>
           </div>
         )}
 

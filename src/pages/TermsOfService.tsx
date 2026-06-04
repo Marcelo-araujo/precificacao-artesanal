@@ -15,7 +15,7 @@ export default function TermsOfService() {
         <div>
           <h2>1. Termos e Aceitação</h2>
           <p style={{ marginTop: '8px' }}>
-            Ao criar uma conta ou utilizar os serviços do PrecificaAlim, você concorda em cumprir e estar 
+            Ao criar uma conta ou utilizar os serviços do Precifica+, você concorda em cumprir e estar 
             sujeito a estes Termos de Serviço. Caso discorde de qualquer cláusula ou termo contido aqui, 
             você deve cessar o uso do aplicativo imediatamente.
           </p>
@@ -34,7 +34,7 @@ export default function TermsOfService() {
         <div>
           <h2>3. Modelo SaaS e Assinaturas</h2>
           <p style={{ marginTop: '8px' }}>
-            O PrecificaAlim opera sob o modelo de assinatura com cobrança recorrente:
+            O Precifica+ opera sob o modelo de assinatura com cobrança recorrente:
           </p>
           <ul style={{ paddingLeft: '20px', marginTop: '8px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <li><strong>Plano Degustação (Freemium):</strong> Oferece uso restrito (limitação no número de receitas e insumos ativos) para demonstração dos cálculos em cascata.</li>
@@ -47,7 +47,7 @@ export default function TermsOfService() {
         <div>
           <h2>4. Limitação de Responsabilidade</h2>
           <p style={{ marginTop: '8px' }}>
-            O PrecificaAlim fornece ferramentas e calculadoras matemáticas para apoiar profissionais de alimentação 
+            O Precifica+ fornece ferramentas e calculadoras matemáticas para apoiar profissionais de alimentação 
             na gestão financeira e na composição de seus preços de venda. Embora o sistema faça o recálculo preciso 
             com base nos insumos informados, a tomada de decisão comercial final sobre as margens, os lucros e a 
             saúde do negócio cabe unicamente ao usuário. Não nos responsabilizamos por eventuais prejuízos comerciais, 
@@ -59,7 +59,7 @@ export default function TermsOfService() {
           <h2>5. Propriedade Intelectual</h2>
           <p style={{ marginTop: '8px' }}>
             Todo o código-fonte, layout visual, design system, logotipos e textos pertencem integralmente ao 
-            PrecificaAlim. Você recebe uma licença de uso limitada, pessoal, intransferível e revogável para utilizar 
+            Precifica+. Você recebe uma licença de uso limitada, pessoal, intransferível e revogável para utilizar 
             o aplicativo em seu negócio artesanal, sendo estritamente proibido realizar engenharia reversa, cópia ou 
             distribuição de partes do software sem autorização explícita por escrito.
           </p>

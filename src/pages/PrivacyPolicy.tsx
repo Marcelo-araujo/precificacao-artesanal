@@ -15,7 +15,7 @@ export default function PrivacyPolicy() {
         <div>
           <h2>1. Introdução</h2>
           <p style={{ marginTop: '8px' }}>
-            Nós do PrecificaAlim valorizamos a sua privacidade e segurança. Esta Política de Privacidade descreve 
+            Nós do Precifica+ valorizamos a sua privacidade e segurança. Esta Política de Privacidade descreve 
             como coletamos, armazenamos e tratamos os seus dados pessoais em conformidade com a Lei Geral de Proteção 
             de Dados (LGPD - Lei nº 13.709/2018). Ao utilizar nossa plataforma, você concorda com as práticas 
             descritas neste documento.
@@ -80,7 +80,7 @@ export default function PrivacyPolicy() {
           <h2>7. Contato</h2>
           <p style={{ marginTop: '8px' }}>
             Para dúvidas ou solicitações referentes à privacidade de dados, você pode entrar em contato com o nosso 
-            Encarregado de Proteção de Dados (DPO) através do e-mail: <strong>privacidade@precificaalim.com.br</strong>.
+            Encarregado de Proteção de Dados (DPO) através do e-mail: <strong>privacidade@precificamais.com.br</strong>.
           </p>
         </div>
       </section>

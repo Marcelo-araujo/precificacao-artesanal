@@ -62,7 +62,7 @@ export default function Login({ onAuthSuccess }: LoginProps) {
           <div style={{ display: 'inline-flex', padding: '12px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', marginBottom: '12px' }}>
             <ShieldCheck size={32} />
           </div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Entrar no PrecificaAlim</h2>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Entrar no Precifica+</h2>
           <p style={{ fontSize: '0.875rem', marginTop: '6px' }}>Proteja sua margem de lucro contra a inflação.</p>
         </div>
 

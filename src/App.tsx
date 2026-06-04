@@ -11,6 +11,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyBanner from './components/PrivacyBanner';
 import GDPRDashboard from './components/GDPRDashboard';
+import LandingPage from './pages/LandingPage';
 
 // Ícones
 import { 
@@ -150,7 +151,7 @@ function AppContent() {
   }
 
   // Se o usuário não estiver logado, redireciona rotas protegidas
-  const isPublicRoute = ['/login', '/cadastro', '/privacidade', '/termos'].includes(window.location.pathname);
+  const isPublicRoute = ['/', '/login', '/cadastro', '/privacidade', '/termos'].includes(window.location.pathname);
   if (!user && !isPublicRoute) {
     return <Navigate to="/login" replace />;
   }
@@ -370,7 +371,7 @@ function AppContent() {
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleData]);
       XLSX.utils.book_append_sheet(wb, ws, 'Modelo Insumos');
-      XLSX.writeFile(wb, 'modelo_importacao_precificaalim.xlsx');
+      XLSX.writeFile(wb, 'modelo_importacao_precificamais.xlsx');
     } catch (err) {
       console.error('Erro ao gerar planilha modelo:', err);
       alert('Não foi possível gerar a planilha modelo.');
@@ -395,7 +396,7 @@ function AppContent() {
                 <Sparkles size={20} />
               </div>
               <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text)' }}>
-                Precifica<span style={{ color: 'var(--primary)' }}>Alim</span>
+                Precifica<span style={{ color: 'var(--primary)' }}>+</span>
               </span>
             </div>
             
@@ -1909,28 +1910,30 @@ function AppContent() {
                 )}
               </div>
             ) : (
-              <Navigate to="/login" replace />
+              <LandingPage />
             )
           } />
         </Routes>
       </main>
 
-      <footer style={{ 
-        borderTop: '1px solid var(--border)', 
-        padding: '24px 0', 
-        background: 'var(--bg-card)', 
-        fontSize: '0.85rem', 
-        color: 'var(--text-muted)',
-        marginTop: 'auto'
-      }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <span>© {new Date().getFullYear()} PrecificaAlim. Todos os direitos reservados.</span>
+      {(user || window.location.pathname !== '/') && (
+        <footer style={{ 
+          borderTop: '1px solid var(--border)', 
+          padding: '24px 0', 
+          background: 'var(--bg-card)', 
+          fontSize: '0.85rem', 
+          color: 'var(--text-muted)',
+          marginTop: 'auto'
+        }}>
+          <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <span>© {new Date().getFullYear()} Precifica+. Todos os direitos reservados.</span>
           <div style={{ display: 'flex', gap: '16px' }}>
             <Link to="/privacidade" style={{ textDecoration: 'underline' }}>Política de Privacidade</Link>
             <Link to="/termos" style={{ textDecoration: 'underline' }}>Termos de Serviço</Link>
           </div>
         </div>
       </footer>
+      )}
 
       {/* Banner de consentimento da LGPD */}
       <PrivacyBanner />
