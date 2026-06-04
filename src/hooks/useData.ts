@@ -203,6 +203,22 @@ const normalizarNome = (str: string): string => {
 };
 
 export function useData(userId: string | null) {
+  // Wrapper para o localStorage que isola os dados por userId
+  const localDb = {
+    getItem: (key: string): string | null => {
+      const actualKey = (key.startsWith('precificaalim_') && userId) ? `${key}_${userId}` : key;
+      return localStorage.getItem(actualKey);
+    },
+    setItem: (key: string, value: string): void => {
+      const actualKey = (key.startsWith('precificaalim_') && userId) ? `${key}_${userId}` : key;
+      localStorage.setItem(actualKey, value);
+    },
+    removeItem: (key: string): void => {
+      const actualKey = (key.startsWith('precificaalim_') && userId) ? `${key}_${userId}` : key;
+      localStorage.removeItem(actualKey);
+    }
+  };
+
   const [profile, setProfile] = useState<PerfilFinanceiro | null>(null);
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [receitas, setReceitas] = useState<Receita[]>([]);
@@ -214,18 +230,49 @@ export function useData(userId: string | null) {
 
   // 1. Carregar dados do banco ou do localStorage
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      // Limpeza de memória no logout: zera os estados do React
+      setProfile(null);
+      setInsumos([]);
+      setReceitas([]);
+      setHistoricoPrecos([]);
+      setCustosItens([]);
+      return;
+    }
 
     const fetchData = async () => {
       setLoading(true);
       try {
         if (isPlaceholder) {
-          // Lógica de mock no localStorage
-          const savedProfile = localStorage.getItem('precificaalim_profiles');
-          const savedInsumos = localStorage.getItem('precificaalim_insumos');
-          const savedReceitas = localStorage.getItem('precificaalim_receitas');
-          const savedHistorico = localStorage.getItem('precificaalim_historico');
-          const savedCustosItens = localStorage.getItem('precificaalim_custos_itens');
+          // Migração de dados antigos globais para as chaves individualizadas por usuário
+          const chavesParaMigrar = [
+            'precificaalim_profiles',
+            'precificaalim_insumos',
+            'precificaalim_receitas',
+            'precificaalim_historico',
+            'precificaalim_custos_itens',
+            'precificaalim_insumos_limpos'
+          ];
+          
+          chavesParaMigrar.forEach(chave => {
+            const dadoGlobal = localStorage.getItem(chave);
+            const chaveUsuario = `${chave}_${userId}`;
+            if (dadoGlobal !== null && localStorage.getItem(chaveUsuario) === null) {
+              localStorage.setItem(chaveUsuario, dadoGlobal);
+            }
+          });
+
+          // Limpa chaves globais antigas para evitar exposição de dados entre usuários
+          chavesParaMigrar.forEach(chave => {
+            localStorage.removeItem(chave);
+          });
+
+          // Lógica de mock no localStorage usando localDb
+          const savedProfile = localDb.getItem('precificaalim_profiles');
+          const savedInsumos = localDb.getItem('precificaalim_insumos');
+          const savedReceitas = localDb.getItem('precificaalim_receitas');
+          const savedHistorico = localDb.getItem('precificaalim_historico');
+          const savedCustosItens = localDb.getItem('precificaalim_custos_itens');
 
           if (savedProfile) {
             setProfile(JSON.parse(savedProfile));
@@ -240,7 +287,7 @@ export function useData(userId: string | null) {
               custos_fixos: 500
             };
             setProfile(newProfile);
-            localStorage.setItem('precificaalim_profiles', JSON.stringify(newProfile));
+            localDb.setItem('precificaalim_profiles', JSON.stringify(newProfile));
           }
 
           // Fallback para mapear "tipo" em insumos antigos do mock e migrar IDs de teste
@@ -267,7 +314,7 @@ export function useData(userId: string | null) {
           });
 
           let parsedInsumos = migratedInsumos;
-          const isCleaned = localStorage.getItem('precificaalim_insumos_limpos') === 'true';
+          const isCleaned = localDb.getItem('precificaalim_insumos_limpos') === 'true';
 
           // Se estiver vazio ou com poucos itens, popula automaticamente com os dados de teste para agilizar a validacao
           if (parsedInsumos.length < 10 && !isCleaned) {
@@ -281,7 +328,7 @@ export function useData(userId: string | null) {
               id: 'insumo-teste-' + idx
             }));
             parsedInsumos = insumosComId;
-            localStorage.setItem('precificaalim_insumos', JSON.stringify(insumosComId));
+            localDb.setItem('precificaalim_insumos', JSON.stringify(insumosComId));
 
             const novosHist: HistoricoPreco[] = insumosComId.map((ins) => ({
               id: 'hist-' + ins.id + '-' + Date.now(),
@@ -289,9 +336,9 @@ export function useData(userId: string | null) {
               preco_pago: ins.preco_pago,
               created_at: new Date().toISOString()
             }));
-            localStorage.setItem('precificaalim_historico', JSON.stringify(novosHist));
+            localDb.setItem('precificaalim_historico', JSON.stringify(novosHist));
           } else if (migrouInsumos) {
-            localStorage.setItem('precificaalim_insumos', JSON.stringify(parsedInsumos));
+            localDb.setItem('precificaalim_insumos', JSON.stringify(parsedInsumos));
           }
           
           setInsumos(parsedInsumos);
@@ -326,7 +373,7 @@ export function useData(userId: string | null) {
             });
 
             if (migrouReceitas) {
-              localStorage.setItem('precificaalim_receitas', JSON.stringify(parsedReceitas));
+              localDb.setItem('precificaalim_receitas', JSON.stringify(parsedReceitas));
             }
           }
           setReceitas(parsedReceitas);
@@ -343,7 +390,7 @@ export function useData(userId: string | null) {
               return h;
             });
             if (migrouHistorico) {
-              localStorage.setItem('precificaalim_historico', JSON.stringify(parsedHistorico));
+              localDb.setItem('precificaalim_historico', JSON.stringify(parsedHistorico));
             }
           }
 
@@ -354,7 +401,7 @@ export function useData(userId: string | null) {
               preco_pago: insumo.preco_pago,
               created_at: new Date().toISOString()
             }));
-            localStorage.setItem('precificaalim_historico', JSON.stringify(parsedHistorico));
+            localDb.setItem('precificaalim_historico', JSON.stringify(parsedHistorico));
           }
           setHistoricoPrecos(parsedHistorico);
 
@@ -367,7 +414,7 @@ export function useData(userId: string | null) {
               nome,
               valor: 0
             }));
-            localStorage.setItem('precificaalim_custos_itens', JSON.stringify(parsedCustosItens));
+            localDb.setItem('precificaalim_custos_itens', JSON.stringify(parsedCustosItens));
           }
           setCustosItens(parsedCustosItens);
         } else {
@@ -391,7 +438,8 @@ export function useData(userId: string | null) {
           }));
 
           // Se estiver vazio ou com poucos itens no Supabase, popula automaticamente com os dados de teste para agilizar a validacao
-          const isCleaned = localStorage.getItem('precificaalim_insumos_limpos') === 'true';
+          const isCleaned = localDb.getItem('precificaalim_insumos_limpos') === 'true';
+
           if (loadedInsumos.length < 10 && !isCleaned) {
             const insumosNovos = INSUMOS_TESTE.map((ins) => ({
               user_id: userId,
@@ -511,7 +559,7 @@ export function useData(userId: string | null) {
       setInsumos(updatedInsumos);
 
       if (isPlaceholder) {
-        localStorage.setItem('precificaalim_insumos', JSON.stringify(updatedInsumos));
+        localDb.setItem('precificaalim_insumos', JSON.stringify(updatedInsumos));
         
         const novoHist: HistoricoPreco = {
           id: 'hist-' + existente.id + '-' + Date.now(),
@@ -521,7 +569,7 @@ export function useData(userId: string | null) {
         };
         const updatedHist = [...historicoPrecos, novoHist];
         setHistoricoPrecos(updatedHist);
-        localStorage.setItem('precificaalim_historico', JSON.stringify(updatedHist));
+        localDb.setItem('precificaalim_historico', JSON.stringify(updatedHist));
       } else {
         const { error: insumoError } = await supabase
           .from('insumos')
@@ -559,7 +607,7 @@ export function useData(userId: string | null) {
       const insumoComId: Insumo = { ...newInsumo, id: 'insumo-' + Date.now() };
       const updatedInsumos = [...insumos, insumoComId];
       setInsumos(updatedInsumos);
-      localStorage.setItem('precificaalim_insumos', JSON.stringify(updatedInsumos));
+      localDb.setItem('precificaalim_insumos', JSON.stringify(updatedInsumos));
 
       // Cria a entrada de histórico inicial
       const historicoComId: HistoricoPreco = {
@@ -570,7 +618,7 @@ export function useData(userId: string | null) {
       };
       const updatedHist = [...historicoPrecos, historicoComId];
       setHistoricoPrecos(updatedHist);
-      localStorage.setItem('precificaalim_historico', JSON.stringify(updatedHist));
+      localDb.setItem('precificaalim_historico', JSON.stringify(updatedHist));
     } else {
       const { data: insumoData, error: insumoError } = await supabase
         .from('insumos')
@@ -611,7 +659,7 @@ export function useData(userId: string | null) {
     setInsumos(updatedInsumos);
 
     if (isPlaceholder) {
-      localStorage.setItem('precificaalim_insumos', JSON.stringify(updatedInsumos));
+      localDb.setItem('precificaalim_insumos', JSON.stringify(updatedInsumos));
       
       const novoHist: HistoricoPreco = {
         id: 'hist-' + id + '-' + Date.now(),
@@ -621,12 +669,12 @@ export function useData(userId: string | null) {
       };
       const updatedHist = [...historicoPrecos, novoHist];
       setHistoricoPrecos(updatedHist);
-      localStorage.setItem('precificaalim_historico', JSON.stringify(updatedHist));
+      localDb.setItem('precificaalim_historico', JSON.stringify(updatedHist));
     } else {
       const { error: insumoError } = await supabase
-        .from('insumos')
-        .update({ preco_pago })
-        .eq('id', id);
+          .from('insumos')
+          .update({ preco_pago })
+          .eq('id', id);
       if (insumoError) throw insumoError;
 
       const { data: histData, error: histError } = await supabase
@@ -653,15 +701,15 @@ export function useData(userId: string | null) {
     setHistoricoPrecos(updatedHist);
 
     if (isPlaceholder) {
-      localStorage.setItem('precificaalim_insumos', JSON.stringify(updatedInsumos));
-      localStorage.setItem('precificaalim_historico', JSON.stringify(updatedHist));
+      localDb.setItem('precificaalim_insumos', JSON.stringify(updatedInsumos));
+      localDb.setItem('precificaalim_historico', JSON.stringify(updatedHist));
       
       const updatedReceitas = receitas.map(rec => ({
         ...rec,
         ingredientes: rec.ingredientes.filter(ing => ing.insumo_id !== id)
       }));
       setReceitas(updatedReceitas);
-      localStorage.setItem('precificaalim_receitas', JSON.stringify(updatedReceitas));
+      localDb.setItem('precificaalim_receitas', JSON.stringify(updatedReceitas));
     } else {
       const { error } = await supabase.from('insumos').delete().eq('id', id);
       if (error) throw error;
@@ -674,7 +722,7 @@ export function useData(userId: string | null) {
 
   const carregarInsumosTeste = async () => {
     if (!userId) return;
-    localStorage.removeItem('precificaalim_insumos_limpos');
+    localDb.removeItem('precificaalim_insumos_limpos');
     
     const insumosNovos = INSUMOS_TESTE.map((ins) => ({
       user_id: userId,
@@ -686,7 +734,7 @@ export function useData(userId: string | null) {
     }));
 
     if (isPlaceholder) {
-      const savedInsumos = localStorage.getItem('precificaalim_insumos');
+      const savedInsumos = localDb.getItem('precificaalim_insumos');
       const insumosAtuais: Insumo[] = savedInsumos ? JSON.parse(savedInsumos) : [];
       
       const novosInsumos = [...insumosAtuais];
@@ -700,6 +748,7 @@ export function useData(userId: string | null) {
         if (indiceExistente !== -1) {
           novosInsumos[indiceExistente] = {
             ...novosInsumos[indiceExistente],
+
             preco_pago: novo.preco_pago,
             quantidade_embalagem: novo.quantidade_embalagem,
             unidade: novo.unidade,
@@ -727,13 +776,13 @@ export function useData(userId: string | null) {
       });
 
       setInsumos(novosInsumos);
-      localStorage.setItem('precificaalim_insumos', JSON.stringify(novosInsumos));
+      localDb.setItem('precificaalim_insumos', JSON.stringify(novosInsumos));
 
-      const savedHistorico = localStorage.getItem('precificaalim_historico');
+      const savedHistorico = localDb.getItem('precificaalim_historico');
       const histAtuais: HistoricoPreco[] = savedHistorico ? JSON.parse(savedHistorico) : [];
       const novosHistLista = [...histAtuais, ...novosHist];
       setHistoricoPrecos(novosHistLista);
-      localStorage.setItem('precificaalim_historico', JSON.stringify(novosHistLista));
+      localDb.setItem('precificaalim_historico', JSON.stringify(novosHistLista));
     } else {
       const novosInsumosLista = [];
       const historicoNovos = [];
@@ -812,11 +861,11 @@ export function useData(userId: string | null) {
 
   const limparECarregarInsumosTeste = async () => {
     if (!userId) return;
-    localStorage.removeItem('precificaalim_insumos_limpos');
+    localDb.removeItem('precificaalim_insumos_limpos');
 
     if (isPlaceholder) {
-      localStorage.removeItem('precificaalim_insumos');
-      localStorage.removeItem('precificaalim_historico');
+      localDb.removeItem('precificaalim_insumos');
+      localDb.removeItem('precificaalim_historico');
       
       const insumosComId: Insumo[] = INSUMOS_TESTE.map((ins, idx) => ({
         user_id: userId,
@@ -829,7 +878,7 @@ export function useData(userId: string | null) {
       }));
 
       setInsumos(insumosComId);
-      localStorage.setItem('precificaalim_insumos', JSON.stringify(insumosComId));
+      localDb.setItem('precificaalim_insumos', JSON.stringify(insumosComId));
 
       const novosHist: HistoricoPreco[] = insumosComId.map((ins) => ({
         id: 'hist-' + ins.id + '-' + Date.now(),
@@ -838,7 +887,7 @@ export function useData(userId: string | null) {
         created_at: new Date().toISOString()
       }));
       setHistoricoPrecos(novosHist);
-      localStorage.setItem('precificaalim_historico', JSON.stringify(novosHist));
+      localDb.setItem('precificaalim_historico', JSON.stringify(novosHist));
     } else {
       await supabase.from('historico_precos').delete().filter('insumo_id', 'in', insumos.map(i => i.id));
       await supabase.from('insumos').delete().eq('user_id', userId);
@@ -881,11 +930,11 @@ export function useData(userId: string | null) {
   const limparTodosInsumos = async () => {
     if (!userId) return;
 
-    localStorage.setItem('precificaalim_insumos_limpos', 'true');
+    localDb.setItem('precificaalim_insumos_limpos', 'true');
 
     if (isPlaceholder) {
-      localStorage.setItem('precificaalim_insumos', JSON.stringify([]));
-      localStorage.setItem('precificaalim_historico', JSON.stringify([]));
+      localDb.setItem('precificaalim_insumos', JSON.stringify([]));
+      localDb.setItem('precificaalim_historico', JSON.stringify([]));
       setInsumos([]);
       setHistoricoPrecos([]);
     } else {
@@ -948,9 +997,9 @@ export function useData(userId: string | null) {
       });
 
       setInsumos(currentInsumos);
-      localStorage.setItem('precificaalim_insumos', JSON.stringify(currentInsumos));
+      localDb.setItem('precificaalim_insumos', JSON.stringify(currentInsumos));
       setHistoricoPrecos(currentHist);
-      localStorage.setItem('precificaalim_historico', JSON.stringify(currentHist));
+      localDb.setItem('precificaalim_historico', JSON.stringify(currentHist));
     } else {
       let currentInsumos = [...insumos];
       let currentHist = [...historicoPrecos];
@@ -1052,7 +1101,7 @@ export function useData(userId: string | null) {
       const receitaComId: Receita = { ...newReceita, id: 'receita-' + Date.now() };
       const updatedList = [...receitas, receitaComId];
       setReceitas(updatedList);
-      localStorage.setItem('precificaalim_receitas', JSON.stringify(updatedList));
+      localDb.setItem('precificaalim_receitas', JSON.stringify(updatedList));
     } else {
       try {
         const { data, error } = await supabase
@@ -1088,7 +1137,7 @@ export function useData(userId: string | null) {
     setReceitas(updatedList);
 
     if (isPlaceholder) {
-      localStorage.setItem('precificaalim_receitas', JSON.stringify(updatedList));
+      localDb.setItem('precificaalim_receitas', JSON.stringify(updatedList));
     } else {
       const { error } = await supabase.from('receitas').delete().eq('id', id);
       if (error) throw error;
@@ -1125,7 +1174,7 @@ export function useData(userId: string | null) {
     setReceitas(updatedList);
 
     if (isPlaceholder) {
-      localStorage.setItem('precificaalim_receitas', JSON.stringify(updatedList));
+      localDb.setItem('precificaalim_receitas', JSON.stringify(updatedList));
     } else {
       try {
         const { error } = await supabase
@@ -1183,7 +1232,7 @@ export function useData(userId: string | null) {
     setProfile(updated);
 
     if (isPlaceholder) {
-      localStorage.setItem('precificaalim_profiles', JSON.stringify(updated));
+      localDb.setItem('precificaalim_profiles', JSON.stringify(updated));
     } else {
       const { error } = await supabase
         .from('profiles')
@@ -1211,7 +1260,7 @@ export function useData(userId: string | null) {
       const custoComId: ItemCustoFixo = { ...newCusto, id: 'custo-' + Date.now() };
       const updated = [...custosItens, custoComId];
       setCustosItens(updated);
-      localStorage.setItem('precificaalim_custos_itens', JSON.stringify(updated));
+      localDb.setItem('precificaalim_custos_itens', JSON.stringify(updated));
     } else {
       const { data, error } = await supabase
         .from('custos_fixos_itens')
@@ -1234,7 +1283,7 @@ export function useData(userId: string | null) {
     setCustosItens(updated);
 
     if (isPlaceholder) {
-      localStorage.setItem('precificaalim_custos_itens', JSON.stringify(updated));
+      localDb.setItem('precificaalim_custos_itens', JSON.stringify(updated));
     } else {
       const { error } = await supabase
         .from('custos_fixos_itens')
@@ -1249,7 +1298,7 @@ export function useData(userId: string | null) {
     setCustosItens(updated);
 
     if (isPlaceholder) {
-      localStorage.setItem('precificaalim_custos_itens', JSON.stringify(updated));
+      localDb.setItem('precificaalim_custos_itens', JSON.stringify(updated));
     } else {
       const { error } = await supabase
         .from('custos_fixos_itens')

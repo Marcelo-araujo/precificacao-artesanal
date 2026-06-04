@@ -286,7 +286,12 @@ function AppContent() {
     }
 
     const preview = sheetData.map(row => {
-      const nomeVal = String(row[mapping.nome] || '').trim();
+      const rawNome = String(row[mapping.nome] || '').trim();
+      // Sanitização de segurança contra XSS: remove tags HTML e URIs javascript:
+      const nomeVal = rawNome
+        .replace(/<[^>]*>?/gm, '')
+        .replace(/javascript:/gi, '')
+        .replace(/[<>]/g, '');
       
       let precoVal = 0;
       if (mapping.preco && row[mapping.preco] !== null) {
