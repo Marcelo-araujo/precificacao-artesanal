@@ -79,7 +79,7 @@ function AppContent() {
     profile, insumos, receitas, loading: dataLoading, custosItens,
     addInsumo, updateInsumo, deleteInsumo,
     addReceita, deleteReceita, updateReceita, updateProfile, getCalculosReceita, getPrecosHistoricos,
-    addCustoItem, updateCustoItem, deleteCustoItem, limparECarregarInsumosTeste, limparTodosInsumos, importarInsumosLote
+    addCustoItem, updateCustoItem, deleteCustoItem, limparTodosInsumos, importarInsumosLote
   } = useData(user?.id || null);
 
   const filteredInsumos = [...insumos]
@@ -591,24 +591,7 @@ function AppContent() {
                             <p style={{ fontSize: '0.9rem' }}>Busque ingredientes, atualize preços no mercado ou cadastre novos insumos.</p>
                           </div>
                           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                            <button 
-                              className="btn btn-secondary" 
-                              onClick={async () => {
-                                if (window.confirm("Deseja carregar a lista de ingredientes de teste? Isso substituira a sua lista atual pelos 68 ingredientes da imagem.")) {
-                                  try {
-                                    await limparECarregarInsumosTeste();
-                                    alert("Ingredientes de teste carregados com sucesso!");
-                                    window.location.reload();
-                                  } catch (err) {
-                                    alert("Erro ao carregar ingredientes de teste.");
-                                    console.error(err);
-                                  }
-                                }
-                              }}
-                              style={{ padding: '10px 20px' }}
-                            >
-                              Carregar Insumos de Teste
-                            </button>
+
                             <button 
                               className="btn btn-secondary" 
                               onClick={async () => {
