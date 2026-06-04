@@ -1,0 +1,100 @@
+# Walkthrough - MVP com Categorizacao de Insumos e Edicao de Receitas
+
+Este documento resume o desenvolvimento final do MVP, destacando a implementacao da segregacao de insumos (ingredientes contra embalagens), o carregamento de dados de teste baseados nas imagens fornecidas, a nova funcionalidade de edicao de receitas e as melhorias aplicadas na aba de Custos para permitir o gerenciamento discriminado de custos fixos e variaveis, alem do calculo automatizado de rateio por hora em cascata para as receitas.
+
+## Alteracoes Efetuadas
+
+Abaixo estao as modificacoes incorporadas ao projeto:
+
+1. **Edicao de Receitas:**
+   * [src/hooks/useData.ts](file:///c:/Users/marce/Precificação/src/hooks/useData.ts):
+     * Criada a funcao `updateReceita` para atualizar os dados cadastrais (nome, rendimento, ingredientes, tempo de preparo, margem e preco de venda praticado) de uma receita existente (tanto em localStorage quanto no Supabase).
+   * [src/App.tsx](file:///c:/Users/marce/Precificação/src/App.tsx):
+     * **Botao de Edicao:** Adicionado o botao com icone `Edit2` na listagem de receitas (ao lado de Excluir).
+     * **Formulario Dinamico:** Ao clicar em editar, os campos do formulario de receitas sao preenchidos automaticamente com os valores da receita selecionada, alterando o titulo do formulario para "Editar Receita" e o botao principal para "Salvar Alteracoes".
+     * **Cancelar Edicao:** Adicionado botao de cancelamento para retornar ao fluxo de criacao e limpar os campos.
+
+2. **Categorizacao de Insumos (Ingredientes vs. Embalagens):**
+   * [src/hooks/useData.ts](file:///c:/Users/marce/Precificação/src/hooks/useData.ts):
+     * A interface `Insumo` agora inclui a propriedade `tipo: 'ingrediente' | 'embalagem'`.
+     * O metodo `addInsumo` foi atualizado para receber o tipo no cadastro.
+     * Implementacao de fallback na inicializacao dos dados no banco e no localStorage para classificar insumos antigos como `'ingrediente'`.
+   * [src/App.tsx](file:///c:/Users/marce/Precificação/src/App.tsx):
+     * **Sub-abas de Navegacao:** Adicionadas na Lista de Compras, permitindo alternar de forma limpa entre "Base de Insumos & Ingredientes" e "Base de Embalagens e Componentes".
+     * **Seletor de Tipo no Modal:** Adicionado seletor de Categoria/Tipo no formulário de cadastro de novos insumos, inicializado automaticamente com base na aba visualizada.
+     * **Ficha Tecnica Segregada:** A visualizacao detalhada de cada receita agora divide claramente os itens utilizados em "Ingredientes Utilizados" e "Embalagens & Componentes", com subtotais e custos operacionais rateados.
+     * **Remocao de Caracteres Especiais:** Substituido o caractere em-dash por hifen simples na exibicao dos rascunhos para garantir conformidade com as regras.
+
+3. **Carregamento de Lista Completa de Insumos de Teste:**
+   * [src/hooks/useData.ts](file:///c:/Users/marce/Precificação/src/hooks/useData.ts):
+     * Adicionada a constante `INSUMOS_TESTE` contendo a lista completa de 68 ingredientes (da primeira imagem) e de 57 embalagens e componentes (da segunda imagem) com seus respectivos precos, quantidades de embalagem e unidades de medida.
+     * Implementacao da funcao `limparECarregarInsumosTeste` para apagar dados residuais antigos (evitando corrupcao) e inserir em lote todos os 125 insumos de teste diretamente no perfil do usuario ativo, alem do historico de precos correspondente.
+     * A inicializacao automatica da aplicacao foi ajustada para carregar a lista de teste caso o usuario tenha menos de 10 insumos cadastrados na base de dados.
+   * [src/App.tsx](file:///c:/Users/marce/Precificação/src/App.tsx):
+     * Atualizado o botao **Carregar Insumos de Teste** na interface de Lista de Compras para realizar a limpeza e a carga em lote dos 125 insumos da base unificada e forcar o recarregamento da pagina com `window.location.reload()` para sincronizar o cache do navegador.
+
+4. **Logica de Custos Detalhados:**
+   * [src/hooks/useData.ts](file:///c:/Users/marce/Precificação/src/hooks/useData.ts):
+     * Criacao da interface `ItemCustoFixo` e do estado correspondente.
+     * Inicializacao automatica dos custos padrao (Gas, Agua, Luz, Telefone, Internet, Aluguel, Gasolina, Mangas, Papel Toalha e MEI) com valor inicial zero.
+     * Acoes CRUD para custos fixos: `addCustoItem`, `updateCustoItem` e `deleteCustoItem`.
+     * Motor de calculo de custos: a antiga coluna estatica `profile.custos_fixos` foi substituida pelo somatorio dinamico dos itens individuais (`custosItens.reduce`).
+
+5. **Interface da Aba Custos:**
+   * [src/App.tsx](file:///c:/Users/marce/Precificação/src/App.tsx):
+     * A antiga aba "Configuracoes" foi renomeada e readequada para "Custos".
+     * **Layout de Duas Colunas:** A coluna esquerda abriga as configuracoes operacionais (Pro-labore, Dias e Horas) e o Painel LGPD. A coluna direita hospeda a tabela de custos detalhados.
+     * **Edicao Direta:** Cada item de custo tem um campo de input numerico de alteracao direta com evento `onBlur` integrado para gravacao imediata.
+     * **Adicionar Custo:** Inclusao de botao e modal compacto para adicionar novos itens de custos personalizados.
+     * **Resumos Fiscais:** Card totalizador com a soma dos custos fixos mensais consolidados e o valor correspondente de taxa fixa por hora trabalhada.
+
+6. **Fator de Perda de Produção e Alinhamento com a Planilha:**
+   * [src/hooks/useData.ts](file:///c:/Users/marce/Precificação/src/hooks/useData.ts):
+     * A interface `Receita` agora suporta opcionalmente `fator_perda?: number` para inflar o custo de ingredientes (massa).
+     * O motor matemático `getCalculosReceita` aplica o fator de perda individualmente e unicamente sobre insumos classificados como ingredientes (embalagens e custos operacionais rateados não sofrem essa inflação).
+     * A precificação sugerida (precoVendaIdeal) foi ajustada para seguir o cálculo de markup multiplicativo por fora da planilha: `CustoTotal * (1 + MargemAlvo/100)`.
+   * [src/App.tsx](file:///c:/Users/marce/Precificação/src/App.tsx):
+     * **Estado do Fator de Perda:** Adicionado o estado `newReceitaPerda` para controle no formulário de receitas.
+     * **Reorganização de Layout:** O campo Fator de Perda (%) foi adicionado como terceira coluna no bloco de informações básicas da receita (Rendimento, Preparo e Fator de Perda).
+     * **Fluxo de Persistência:** Integrada a passagem do Fator de Perda nos fluxos de salvamento, edição, cancelamento e exclusão de receitas.
+     * **Ficha Técnica Detalhada:** A visualização detalhada da receita agora indica o percentual de perda aplicado nos ingredientes. O custo de cada ingrediente listado é calculado individualmente com a taxa de perda aplicada, e foi adicionada uma exibição de subtotais por categoria de custo (ingredientes, embalagens e operacional) para máxima transparência financeira.
+
+7. **Rendimento Unitário, Peso e Ajuste de Uts:**
+    * [src/hooks/useData.ts](file:///c:/Users/marce/Precificação/src/hooks/useData.ts):
+      * Atualização da interface `Receita` com o campo `rendimento_peso?: number` para representar o peso final em gramas.
+      * Ajustada a lógica do motor matemático `getCalculosReceita` para calcular simultaneamente os custos e os preços ideais por porção/unidade e por peso (por grama, por 100g e por kg) caso o peso total esteja cadastrado.
+      * Implementado salvamento resiliente no Supabase e localStorage: caso a coluna `rendimento_peso` não exista fisicamente no banco de dados, o insert/update é tratado para rodar sem ela, evitando interrupções no funcionamento.
+    * [src/App.tsx](file:///c:/Users/marce/Precificação/src/App.tsx):
+      * **Novo Campo no Formulário:** Adicionado o campo "Peso Total (g)" (opcional) de forma a dispor os inputs em duas linhas alinhadas de 3 colunas cada.
+      * **Simplificação do Rótulo:** Mapeado o termo confuso "Rendimento (Uts)" para apenas "Rendimento" no formulário e "porções" na exibição.
+      * **Exibição Concomitante:** O card da receita foi aprimorado para apresentar simultaneamente as métricas por unidade (un) e por peso (100g e kg) com perfeito alinhamento vertical das colunas.
+
+8. **Correção de Persistência e Exibição de Embalagens nas Receitas:**
+    * [src/hooks/useData.ts](file:///c:/Users/marce/Precificação/src/hooks/useData.ts):
+      * **Estabilização de IDs de Teste:** Removida a concatenação com `Date.now()` na geração automática de IDs de insumos de teste no mock do `localStorage`. Os IDs agora são determinísticos (`insumo-teste-idx`).
+      * **Lógica de Migração Automática:** Adicionado algoritmo no `useEffect` de carregamento inicial para identificar dados antigos que usavam IDs de teste dinâmicos baseados em timestamp. O sistema mapeia e migra automaticamente esses IDs antigos para os novos IDs estáticos consistentes nas listas de insumos, histórico de preços e em todas as receitas salvas no `localStorage`.
+      * **Persistência Determinística:** Ajustadas as funções `carregarInsumosTeste` e `limparECarregarInsumosTeste` para usar e manter os IDs estáticos, garantindo que reinicializações ou recargas dos insumos de teste não quebrem mais o relacionamento com as receitas salvas.
+
+---
+
+## Verificacao e Testes de Validacao
+
+Os testes foram rodados localmente para garantir a consistencia de compilacao da aplicacao final:
+
+### Compilacao do Codigo (Vite Build)
+O build de producao foi gerado com absoluto sucesso:
+```bash
+npm run build
+```
+O compilador Rolldown/Vite processou todos os modulos de forma correta e sem apresentar erros ou alertas de linter.
+
+### Validacao dos Fluxos de Custos, Categorizacao e Testes
+* **Estabilização e Migração:** A migração automática de IDs de teste antigos de receitas existentes para os novos IDs estáticos do mock funcionou perfeitamente. Embalagens e ingredientes que antes haviam sumido das receitas salvas voltaram a aparecer e a pontuar no cálculo global de custos.
+* **Carga de Insumos sem Perda de Relacionamento:** Acionar o botão de limpar e recarregar os insumos de teste agora reconstrói a base de dados mantendo os IDs determinísticos intactos, garantindo que as embalagens e ingredientes permaneçam associados às receitas criadas e editadas sem quebras.
+* **Carregamento Completo:** O botao "Carregar Insumos de Teste" realiza a insercao sem duplicatas no perfil ativo. Apos o clique, a lista de compras passa a listar perfeitamente todos os 125 insumos das duas imagens com seus respectivos custos.
+* **Cadastro por Tipo:** Ao cadastrar novos insumos, a selecao da categoria define se o item e ingrediente ou embalagem.
+* **Separacao de Sub-abas:** A Lista de Compras filtra e exibe de forma independente os ingredientes e as embalagens.
+* **Edicao de Receitas:** O clique em Editar carrega as configuracoes e ingredientes corretos no formulario lateral e rola a tela ate ele de forma fluida. O envio grava as alteracoes em cascata no banco e recalcula o custo e as margens da ficha tecnica imediatamente.
+* **Soma e Rateio Automáticos:** Alteracoes nos custos fixos individuais atualizam dinamicamente as margens de todas as receitas no Dashboard de Alertas.
+* **Fator de Perda na Ficha Técnica:** Receitas com fator de perda mostram adequadamente o percentual inflado e atualizam corretamente o custo de ingredientes utilizados na ficha técnica detalhada e no resumo global de precificação.
+* **Cálculo Duplo de Rendimento/Peso:** Receitas cadastradas com porções e peso em gramas apresentam os custos unitários e preços sugeridos corretos para ambos os formatos (unidades, 100g e kg) com total integridade e perfeito alinhamento de grade.

@@ -1,0 +1,39 @@
+# Plano de Implementação: Correção de Persistência e Exibição de Embalagens nas Receitas
+
+Este plano detalha a correção do bug onde itens de embalagem deixavam de ser carregados ou exibidos nas receitas salvas. A causa principal é a utilização de IDs dinâmicos dinamicamente gerados com timestamp para os insumos de teste no localStorage do ambiente mock. Quando esses insumos de teste são atualizados, recarregados ou limpos, seus IDs mudam, quebrando as referências salvas nas receitas.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **IDs Estáticos Determinísticos:**
+> Os insumos de teste gerados no localStorage passarão a usar IDs estáticos baseados em seus índices correspondentes no array padrão (ex: `insumo-teste-0`, `insumo-teste-1`, etc.). Com isso, as relações de chaves estrangeiras nunca mais se romperão quando os insumos padrão forem recarregados.
+>
+> **Migração de Dados Automática:**
+> Para não quebrar as receitas existentes criadas pelo usuário com IDs antigos dinâmicos, implementaremos uma migração automática na inicialização. O sistema mapeará os IDs dinâmicos de teste antigos para os novos IDs estáticos determinísticos equivalentes baseados no nome do insumo.
+
+## Open Questions
+
+*Nenhuma pergunta em aberto no momento.*
+
+## Proposed Changes
+
+### [Componente: Gancho de Dados (useData)]
+
+#### [MODIFY] [useData.ts](file:///c:/Users/marce/Precificação/src/hooks/useData.ts)
+* **Migração de IDs Antigos:** No carregamento inicial do `localStorage` (dentro de `useEffect`), identificar insumos de teste com IDs dinâmicos antigos e mapeá-los para os novos IDs estáticos `insumo-teste-idx` baseados no índice do item na lista `INSUMOS_TESTE` com o mesmo nome.
+* **Atualização de Referências:** Corrigir as referências desses IDs antigos nas receitas salvas e no histórico de preços armazenados no `localStorage` utilizando o mapa de conversão criado.
+* **IDs Determinísticos na Inicialização:** Alterar a lógica de preenchimento inicial para usar `id: 'insumo-teste-' + idx` em vez de concatenar com `Date.now()`.
+* **Ajuste em `carregarInsumosTeste`:** Alterar a geração de novos IDs para usar o formato determinístico `insumo-teste-idx` em vez de string randômica com `Date.now()`.
+* **Ajuste em `limparECarregarInsumosTeste`:** Garantir que ao recriar a lista padrão de teste mock do zero, os IDs atribuídos sejam determinísticos (`insumo-teste-idx`).
+
+## Verification Plan
+
+### Automated Tests
+* Executar `npm run build` para certificar que o projeto compila sem erros de linter ou tipagem.
+
+### Manual Verification
+1. Criar uma nova receita local contendo pelo menos um ingrediente e um insumo do tipo embalagem.
+2. Salvar a receita e validar se o custo total e a lista detalhada mostram os dois tipos corretamente.
+3. Nas configurações, acionar o botão para recarregar ou limpar os insumos de teste.
+4. Voltar à listagem de receitas e confirmar se os itens de embalagem e seus custos continuam sendo exibidos corretamente e se não desapareceram.
+

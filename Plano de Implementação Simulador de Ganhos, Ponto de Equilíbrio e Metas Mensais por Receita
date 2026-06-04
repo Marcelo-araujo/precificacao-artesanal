@@ -1,0 +1,59 @@
+# Plano de Implementação: Simulador de Ganhos, Ponto de Equilíbrio e Metas Mensais por Receita
+
+Este plano detalha a inclusão de uma simulação interativa de ganhos em cada receita. O objetivo é calcular e exibir ao usuário quantos itens da receita ele precisa fabricar e vender mensalmente para atingir suas metas de pró-labore e custos fixos (Ponto de Equilíbrio), além de permitir que ele simule vendas mensais personalizadas para ver o faturamento, custos variáveis e o lucro líquido real estimado (sobra além do salário).
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Fórmula do Ponto de Equilíbrio Operacional:**
+> 1. **Meta Mensal Mínima:** Definida como a soma do salário desejado (pró-labore) e dos custos fixos mensais cadastrados (`salario_desejado + custos_fixos_mensais`).
+> 2. **Margem de Contribuição Unitária (MC):** O preço praticado unitário menos o custo de insumos (ingredientes + embalagens) unitário.
+> 3. **Unidades para Meta:** A meta mensal mínima dividida pela Margem de Contribuição Unitária. Indica quantos itens o usuário precisa vender por mês para pagar todas as despesas fixas e o seu próprio salário.
+>
+> **Simulador Interativo de Vendas:**
+> Adicionaremos um campo de entrada numérica em cada receita (no painel da Ficha Técnica Detalhada) para que o usuário simule um volume de vendas estimado. O sistema calculará em tempo real:
+> * O Faturamento Bruto Mensal.
+> * O Custo de Insumos Variáveis Mensal.
+> * O Lucro Líquido Real Mensal (sobra de caixa livre do negócio além do salário desejado), usando a fórmula: `(Vendas Simuladas * Margem de Contribuição) - Meta Mensal`.
+
+## Open Questions
+
+*Nenhuma pergunta em aberto no momento.*
+
+## Proposed Changes
+
+### [Componente: Gancho de Dados (useData)]
+
+#### [MODIFY] [useData.ts](file:///c:/Users/marce/Precificação/src/hooks/useData.ts)
+* **Atualização do Motor getCalculosReceita:**
+  * Calcular `custosFixosTotais` a partir da soma dinâmica de `custosItens`.
+  * Calcular a meta mensal consolidada (`salario_desejado + custosFixosTotais`).
+  * Computar a Margem de Contribuição Unitária (`MC = (receita.preco_venda_praticado - (custoIngredientesBruto * (1 + fator_perda/100) + custoEmbalagens)) / receita.rendimento`).
+  * Calcular o Ponto de Equilíbrio de Unidades (`pontoEquilibrioUnidades`) e o Ponto de Equilíbrio de Receitas Completas (`pontoEquilibrioReceitas`).
+  * Retornar essas novas variáveis no objeto de cálculos da receita.
+
+---
+
+### [Componente: Interface do Usuário]
+
+#### [MODIFY] [App.tsx](file:///c:/Users/marce/Precificação/src/App.tsx)
+* **Estado Local de Simulação:** Adicionar o estado `simulacaoQuantidades` (mapeamento ID da receita -> quantidade simulada) para gerenciar o input interativo individual por receita.
+* **Nova Seção na Ficha Técnica Detalhada:**
+  * Inserir um bloco visualmente atraente chamado **"Simulador de Ganhos e Metas Mensais"** logo abaixo dos custos operacionais rateados.
+  * Exibir o Ponto de Equilíbrio: a meta mensal de faturamento (salário + custos fixos) e a quantidade exata de itens a vender para atingi-la.
+  * Exibir um controle de entrada numérica (input) para simular as vendas mensais, pré-preenchido com o ponto de equilíbrio arredondado para cima.
+  * Apresentar o faturamento projetado, custos variáveis e o resultado líquido sob a quantidade simulada (com cores verde para lucro líquido positivo e vermelho para prejuízo operacional).
+
+## Verification Plan
+
+### Automated Tests
+* Executar `npm run build` para garantir que o projeto compile sem nenhum erro de linter ou de tipagem do TypeScript.
+
+### Manual Verification
+1. Acessar a listagem de receitas e abrir a Ficha Técnica Detalhada.
+2. Confirmar a exibição da meta mensal consolidada baseada nas configurações de pró-labore e custos fixos.
+3. Verificar a quantidade exibida no ponto de equilíbrio.
+4. Digitar um volume de vendas maior que o ponto de equilíbrio no simulador interativo e validar se os lucros aparecem em destaque (verde) com valor de sobra positivo além do salário.
+5. Digitar um volume de vendas menor e certificar de que o sistema mostra o saldo sobressalente como negativo (prejuízo/déficit para a meta).
+
+
