@@ -437,36 +437,7 @@ export function useData(userId: string | null) {
             tipo: i.tipo || 'ingrediente'
           }));
 
-          // Se estiver vazio ou com poucos itens no Supabase, popula automaticamente com os dados de teste para agilizar a validacao
-          const isCleaned = localDb.getItem('precificaalim_insumos_limpos') === 'true';
 
-          if (loadedInsumos.length < 10 && !isCleaned) {
-            const insumosNovos = INSUMOS_TESTE.map((ins) => ({
-              user_id: userId,
-              nome: ins.nome,
-              preco_pago: ins.preco_pago,
-              quantidade_embalagem: ins.quantidade_embalagem,
-              unidade: ins.unidade,
-              tipo: ins.tipo as 'ingrediente' | 'embalagem'
-            }));
-
-            const { data: insertedInsumos, error: insertError } = await supabase
-              .from('insumos')
-              .insert(insumosNovos)
-              .select();
-
-            if (!insertError && insertedInsumos) {
-              loadedInsumos = insertedInsumos;
-              
-              const historicoNovos = insertedInsumos.map(ins => ({
-                insumo_id: ins.id,
-                preco_pago: ins.preco_pago,
-                created_at: new Date().toISOString()
-              }));
-
-              await supabase.from('historico_precos').insert(historicoNovos);
-            }
-          }
 
           setInsumos(loadedInsumos);
 

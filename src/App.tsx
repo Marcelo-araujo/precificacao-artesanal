@@ -18,7 +18,7 @@ import TrialExpiredPaywall from './components/TrialExpiredPaywall';
 import { 
   TrendingUp, Sparkles, Plus, Trash2, Settings, 
   ClipboardList, ShoppingCart, LogOut, DollarSign, 
-  Clock, Calendar, CheckCircle2, AlertTriangle, X, Edit2
+  Clock, Calendar, CheckCircle2, AlertTriangle, X, Edit2, Menu
 } from 'lucide-react';
 
 function AppContent() {
@@ -31,6 +31,7 @@ function AppContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddInsumoModal, setShowAddInsumoModal] = useState(false);
   const [expandedHistoryInsumoId, setExpandedHistoryInsumoId] = useState<string | null>(null);
+  const [isNavOpen, setIsNavOpen] = useState(false);
   
   // Controle de sub-abas internas da Lista de Compras
   const [comprasSubTab, setComprasSubTab] = useState<'ingrediente' | 'embalagem'>('ingrediente');
@@ -52,6 +53,7 @@ function AppContent() {
   const [newReceitaTempo, setNewReceitaTempo] = useState(30);
   const [newReceitaMargem, setNewReceitaMargem] = useState(30);
   const [newReceitaPrecoVenda, setNewReceitaPrecoVenda] = useState(0);
+
   const [newReceitaIngredientes, setNewReceitaIngredientes] = useState<{ insumo_id: string; vanity?: boolean; quantidade: number }[]>([]);
   const [selectedInsumoId, setSelectedInsumoId] = useState('');
   const [selectedInsumoQtd, setSelectedInsumoQtd] = useState(0);
@@ -194,6 +196,27 @@ function AppContent() {
     navigate('/login');
   };
 
+  const previewCalc = getCalculosReceita({
+    id: 'preview',
+    user_id: user?.id || '',
+    nome: newReceitaNome || 'Preview',
+    rendimento: newReceitaRendimento || 1,
+    rendimento_peso: newReceitaPeso || 0,
+    ingredientes: newReceitaIngredientes,
+    tempo_preparo: newReceitaTempo || 0,
+    margem_alvo: newReceitaMargem || 0,
+    preco_venda_praticado: newReceitaPrecoVenda || 0,
+    fator_perda: newReceitaPerda || 0
+  });
+
+/*
+  useEffect(() => {
+    if (!isPrecoVendaEdited && previewCalc.precoVendaIdeal > 0) {
+      setNewReceitaPrecoVenda(parseFloat(previewCalc.precoVendaIdeal.toFixed(2)));
+    }
+  }, [previewCalc.precoVendaIdeal, isPrecoVendaEdited]);
+  */
+
   if (authLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', flexDirection: 'column', gap: '16px' }}>
@@ -280,6 +303,7 @@ function AppContent() {
     setNewReceitaTempo(30);
     setNewReceitaMargem(30);
     setNewReceitaPrecoVenda(0);
+
     setNewReceitaPerda(0);
     setNewReceitaPeso(0);
     setNewReceitaIngredientes([]);
@@ -434,6 +458,8 @@ function AppContent() {
     }
   };
 
+
+
   return (
     <>
       {user && !trialExpired && (
@@ -446,7 +472,7 @@ function AppContent() {
           zIndex: 100, 
           padding: '12px 24px' 
         }}>
-          <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ background: 'var(--primary)', color: 'white', padding: '6px', borderRadius: '8px', display: 'flex' }}>
                 <Sparkles size={20} />
@@ -456,22 +482,7 @@ function AppContent() {
               </span>
             </div>
             
-            <nav style={{ display: 'flex', gap: '8px' }}>
-              <button className={`btn ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('dashboard')} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                Dashboard
-              </button>
-              <button className={`btn ${activeTab === 'compras' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('compras')} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                <ShoppingCart size={16} /> Lista de Compras
-              </button>
-              <button className={`btn ${activeTab === 'receitas' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('receitas')} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                <ClipboardList size={16} /> Receitas
-              </button>
-              <button className={`btn ${activeTab === 'config' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('config')} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                <Settings size={16} /> Configurações
-              </button>
-            </nav>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               {diasRestantes !== null && (
                 <span style={{ 
                   fontSize: '0.75rem', 
@@ -489,7 +500,50 @@ function AppContent() {
                   Avaliação: {diasRestantes} {diasRestantes === 1 ? 'dia' : 'dias'} restante{diasRestantes === 1 ? '' : 's'}
                 </span>
               )}
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{profile?.nome || user.email}</span>
+
+              <div style={{ position: 'relative' }}>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => setIsNavOpen(!isNavOpen)} 
+                  style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <Menu size={20} /> Menu
+                </button>
+                
+                {isNavOpen && (
+                  <nav style={{ 
+                    position: 'absolute', 
+                    top: '100%', 
+                    left: 0,
+                    marginTop: '12px', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '8px', 
+                    background: 'var(--bg-card)', 
+                    padding: '16px', 
+                    borderRadius: '12px', 
+                    border: '1px solid var(--border)', 
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)', 
+                    zIndex: 200,
+                    minWidth: '220px'
+                  }}>
+                    <button className={`btn ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setActiveTab('dashboard'); setIsNavOpen(false); }} style={{ padding: '10px 16px', fontSize: '0.9rem', justifyContent: 'flex-start', width: '100%' }}>
+                      Dashboard
+                    </button>
+                    <button className={`btn ${activeTab === 'compras' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setActiveTab('compras'); setIsNavOpen(false); }} style={{ padding: '10px 16px', fontSize: '0.9rem', justifyContent: 'flex-start', width: '100%' }}>
+                      <ShoppingCart size={18} /> Lista de Compras
+                    </button>
+                    <button className={`btn ${activeTab === 'receitas' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setActiveTab('receitas'); setIsNavOpen(false); }} style={{ padding: '10px 16px', fontSize: '0.9rem', justifyContent: 'flex-start', width: '100%' }}>
+                      <ClipboardList size={18} /> Receitas
+                    </button>
+                    <button className={`btn ${activeTab === 'config' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setActiveTab('config'); setIsNavOpen(false); }} style={{ padding: '10px 16px', fontSize: '0.9rem', justifyContent: 'flex-start', width: '100%' }}>
+                      <Settings size={18} /> Configurações
+                    </button>
+                  </nav>
+                )}
+              </div>
+
+              <span className="desktop-only" style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{profile?.nome || user.email}</span>
               <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }}>
                 <LogOut size={14} /> Sair
               </button>
@@ -530,7 +584,7 @@ function AppContent() {
                         </div>
 
                         {/* Cards de Alertas de Lucro (MVP core) */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '20px' }}>
                           {/* Alerta de Receitas que Encareceram (Vermelho) */}
                           <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px', borderLeft: '6px solid var(--danger)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -640,10 +694,10 @@ function AppContent() {
                         {/* Visão de Custos Gerais e Métricas do Negócio */}
                         <div className="card" style={{ textAlign: 'left' }}>
                           <h3 style={{ marginBottom: '16px' }}>Painel Resumo da Operação</h3>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '20px' }}>
                             <div style={{ padding: '16px', background: 'var(--bg)', borderRadius: '12px' }}>
                               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Salário Mensal Esperado</span>
-                              <strong style={{ fontSize: '1.4rem' }}>R$ {profile?.salario_desejado.toFixed(2)}</strong>
+                              <strong style={{ fontSize: '1.4rem' }}>R$ {(profile?.salario_desejado || 0).toFixed(2)}</strong>
                             </div>
                             <div style={{ padding: '16px', background: 'var(--bg)', borderRadius: '12px' }}>
                               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Custos Fixos Totais</span>
@@ -1391,8 +1445,22 @@ function AppContent() {
                                   max={100}
                                 />
                               </div>
-                              <div className="input-group" style={{ flex: 1 }}>
-                                <label className="input-label" htmlFor="recVenda">Preço Praticado (R$)</label>
+                              <div className="input-group" style={{ flex: 1, position: 'relative' }}>
+                                <label className="input-label" htmlFor="recVenda" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span>Preço Sugerido (Editável)</span>
+                                  {previewCalc.precoVendaIdeal > 0 && (
+                                    <button 
+                                      type="button" 
+                                      onClick={() => {
+
+                                        setNewReceitaPrecoVenda(parseFloat(previewCalc.precoVendaIdeal.toFixed(2)));
+                                      }} 
+                                      style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline', padding: 0, margin: 0, lineHeight: 1 }}
+                                    >
+                                      Usar Ideal
+                                    </button>
+                                  )}
+                                </label>
                                 <input
                                   id="recVenda"
                                   type="number"
@@ -1400,7 +1468,10 @@ function AppContent() {
                                   className="input-field"
                                   placeholder="0.00"
                                   value={newReceitaPrecoVenda || ''}
-                                  onChange={(e) => setNewReceitaPrecoVenda(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => {
+                                    setNewReceitaPrecoVenda(parseFloat(e.target.value) || 0);
+
+                                  }}
                                   required
                                 />
                               </div>
@@ -1464,7 +1535,45 @@ function AppContent() {
                               )}
                             </div>
 
-                            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px', marginTop: '8px' }}>
+                              {/* Preview Financeiro */}
+                              {newReceitaIngredientes.length > 0 && (
+                                <div style={{ background: 'var(--bg)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                  <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary)', margin: 0 }}>Pré-visualização Financeira</h4>
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    <div>
+                                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block' }}>Custo Total</span>
+                                      <strong style={{ fontSize: '1.1rem' }}>R$ {previewCalc.custoTotal.toFixed(2)}</strong>
+                                    </div>
+                                    <div>
+                                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block' }}>Preço Ideal Sugerido</span>
+                                      <strong style={{ fontSize: '1.1rem' }}>R$ {previewCalc.precoVendaIdeal.toFixed(2)}</strong>
+                                    </div>
+                                  </div>
+                                  <div style={{ marginTop: '8px', padding: '10px', borderRadius: '8px', borderLeft: '4px solid', 
+                                    borderColor: previewCalc.margemRealProjetada >= newReceitaMargem ? 'var(--success)' : (previewCalc.custoTotal < newReceitaPrecoVenda ? 'var(--warning)' : 'var(--danger)'),
+                                    backgroundColor: previewCalc.margemRealProjetada >= newReceitaMargem ? 'rgba(34, 197, 94, 0.1)' : (previewCalc.custoTotal < newReceitaPrecoVenda ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)')
+                                  }}>
+                                    {previewCalc.margemRealProjetada >= newReceitaMargem ? (
+                                      <>
+                                        <strong style={{ display: 'block', color: 'var(--success)', fontSize: '0.85rem' }}>Margem Segura</strong>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Lucro Projetado: {previewCalc.margemRealProjetada.toFixed(1)}%</span>
+                                      </>
+                                    ) : previewCalc.custoTotal < newReceitaPrecoVenda ? (
+                                      <>
+                                        <strong style={{ display: 'block', color: 'var(--warning)', fontSize: '0.85rem' }}>Requer Ajustes</strong>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Margem de {previewCalc.margemRealProjetada.toFixed(1)}% (Abaixo do alvo de {newReceitaMargem}%)</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <strong style={{ display: 'block', color: 'var(--danger)', fontSize: '0.85rem' }}>Alerta de Prejuízo</strong>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>O preço praticado não cobre nem os custos da receita.</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px', marginTop: '8px' }}>
                               {editingReceitaId ? 'Salvar Alterações' : 'Salvar Receita'}
                             </button>
                             {editingReceitaId && (
@@ -1478,6 +1587,7 @@ function AppContent() {
                                     setNewReceitaTempo(30);
                                     setNewReceitaMargem(30);
                                     setNewReceitaPrecoVenda(0);
+
                                     setNewReceitaPerda(0);
                                     setNewReceitaPeso(0);
                                     setNewReceitaIngredientes([]);
@@ -1518,6 +1628,7 @@ function AppContent() {
                                             setNewReceitaTempo(rec.tempo_preparo);
                                             setNewReceitaMargem(rec.margem_alvo);
                                             setNewReceitaPrecoVenda(rec.preco_venda_praticado);
+
                                             setNewReceitaPerda(rec.fator_perda || 0);
                                             setNewReceitaPeso(rec.rendimento_peso || 0);
                                             setNewReceitaIngredientes(rec.ingredientes.map(ing => ({
@@ -1541,6 +1652,7 @@ function AppContent() {
                                               setNewReceitaTempo(30);
                                               setNewReceitaMargem(30);
                                               setNewReceitaPrecoVenda(0);
+
                                               setNewReceitaPerda(0);
                                               setNewReceitaPeso(0);
                                               setNewReceitaIngredientes([]);
@@ -1783,7 +1895,7 @@ function AppContent() {
 
                     {/* ABA: CUSTOS E OPERAÇÃO (Diferencial de Custos Detalhados) */}
                     {activeTab === 'config' && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '32px', textAlign: 'left', alignItems: 'start' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '32px', textAlign: 'left', alignItems: 'start' }}>
                         
                         {/* Coluna Esquerda: Parâmetros do Trabalho e LGPD */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
