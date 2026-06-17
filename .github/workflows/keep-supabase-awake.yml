@@ -1,0 +1,30 @@
+name: Keep Supabase Awake
+
+on:
+  schedule:
+    # Roda a cada 2 dias às 00:00 UTC
+    - cron: '0 0 */2 * *'
+  workflow_dispatch: # Permite rodar manualmente no GitHub
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "A variável SUPABASE_URL não foi definida nos Secrets do repositório."
+            exit 1
+          fi
+          
+          echo "Realizando um ping no Supabase para mantê-lo ativo..."
+          # Fazemos uma requisição GET simples na API do Supabase (por exemplo, buscando apenas 1 linha de uma tabela pública ou o endpoint base)
+          # Isso é suficiente para registrar atividade de API e evitar que o projeto seja pausado.
+          curl -s -o /dev/null -w "%{http_code}" -X GET "$SUPABASE_URL/rest/v1/" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY"
+          
+          echo "Ping concluído!"
