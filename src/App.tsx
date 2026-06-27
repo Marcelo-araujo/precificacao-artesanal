@@ -86,9 +86,6 @@ function AppContent() {
   const [compraEmbalagens, setCompraEmbalagens] = useState(1);
   const [compraPreco, setCompraPreco] = useState(0);
 
-  const [showProducaoModal, setShowProducaoModal] = useState(false);
-  const [producaoReceitaId, setProducaoReceitaId] = useState('');
-  const [producaoQtd, setProducaoQtd] = useState(1);
 
   // Custom Hook com a lógica de dados
   const {
@@ -97,7 +94,7 @@ function AppContent() {
     addReceita, deleteReceita, updateReceita, updateProfile, getCalculosReceita, getPrecosHistoricos,
     addCustoItem, updateCustoItem, deleteCustoItem, limparTodosInsumos, importarInsumosLote,
     addKit, updateKit, deleteKit, getCalculosKit,
-    calcularEstoqueMinimo, registrarProducao, registrarCompraInsumo
+    registrarCompraInsumo
   } = useData(user?.id || null);
 
   const filteredInsumos = [...insumos]
