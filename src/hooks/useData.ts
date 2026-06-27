@@ -9,6 +9,7 @@ export interface Insumo {
   quantidade_embalagem: number;
   unidade: string; // g, ml, un
   tipo: 'ingrediente' | 'embalagem';
+  estoque_atual?: number;
   created_at?: string;
 }
 
@@ -43,6 +44,21 @@ export interface Receita {
   margem_alvo: number; // Porcentagem, ex: 30%
   preco_venda_praticado: number;
   fator_perda?: number; // Porcentagem, ex: 10%
+  created_at?: string;
+}
+
+export interface KitItem {
+  tipo: 'receita' | 'insumo';
+  item_id: string;
+  quantidade: number;
+}
+
+export interface Kit {
+  id: string;
+  user_id: string;
+  nome: string;
+  itens: KitItem[];
+  preco_venda_praticado: number;
   created_at?: string;
 }
 
@@ -224,6 +240,7 @@ export function useData(userId: string | null) {
   const [receitas, setReceitas] = useState<Receita[]>([]);
   const [historicoPrecos, setHistoricoPrecos] = useState<HistoricoPreco[]>([]);
   const [custosItens, setCustosItens] = useState<ItemCustoFixo[]>([]);
+  const [kits, setKits] = useState<Kit[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isPlaceholder = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
@@ -233,6 +250,9 @@ export function useData(userId: string | null) {
     if (!userId) {
       // Limpeza de memória no logout: zera os estados do React
       setProfile(null);
+      setInsumos([]);
+      setReceitas([]);
+      setKits([]);
       setInsumos([]);
       setReceitas([]);
       setHistoricoPrecos([]);
@@ -249,6 +269,7 @@ export function useData(userId: string | null) {
             'precificaalim_profiles',
             'precificaalim_insumos',
             'precificaalim_receitas',
+            'precificaalim_kits',
             'precificaalim_historico',
             'precificaalim_custos_itens',
             'precificaalim_insumos_limpos'
@@ -271,6 +292,7 @@ export function useData(userId: string | null) {
           const savedProfile = localDb.getItem('precificaalim_profiles');
           const savedInsumos = localDb.getItem('precificaalim_insumos');
           const savedReceitas = localDb.getItem('precificaalim_receitas');
+          const savedKits = localDb.getItem('precificaalim_kits');
           const savedHistorico = localDb.getItem('precificaalim_historico');
           const savedCustosItens = localDb.getItem('precificaalim_custos_itens');
 
@@ -307,10 +329,10 @@ export function useData(userId: string | null) {
               if (ins.id !== staticId) {
                 idMap[ins.id] = staticId;
                 migrouInsumos = true;
-                return { ...ins, id: staticId, tipo: ins.tipo || INSUMOS_TESTE[idxTeste].tipo };
+                return { ...ins, id: staticId, tipo: ins.tipo || INSUMOS_TESTE[idxTeste].tipo, estoque_atual: ins.estoque_atual || 0 };
               }
             }
-            return { ...ins, tipo: ins.tipo || 'ingrediente' };
+            return { ...ins, tipo: ins.tipo || 'ingrediente', estoque_atual: ins.estoque_atual || 0 };
           });
 
           let parsedInsumos = migratedInsumos;
@@ -325,6 +347,7 @@ export function useData(userId: string | null) {
               quantidade_embalagem: ins.quantidade_embalagem,
               unidade: ins.unidade,
               tipo: ins.tipo as 'ingrediente' | 'embalagem',
+              estoque_atual: 0,
               id: 'insumo-teste-' + idx
             }));
             parsedInsumos = insumosComId;
@@ -377,6 +400,10 @@ export function useData(userId: string | null) {
             }
           }
           setReceitas(parsedReceitas);
+
+          // Carregamento de kits
+          let parsedKits = savedKits ? JSON.parse(savedKits) : [];
+          setKits(parsedKits);
 
           // Migração de histórico de preços
           let parsedHistorico = rawHistorico;
@@ -434,7 +461,8 @@ export function useData(userId: string | null) {
           // Fallback para mapear "tipo" em registros antigos do Supabase
           let loadedInsumos: Insumo[] = (iData || []).map((i: any) => ({
             ...i,
-            tipo: i.tipo || 'ingrediente'
+            tipo: i.tipo || 'ingrediente',
+            estoque_atual: i.estoque_atual || 0
           }));
 
 
@@ -450,6 +478,12 @@ export function useData(userId: string | null) {
             fator_perda: r.fator_perda !== undefined ? r.fator_perda : 0,
             rendimento_peso: r.rendimento_peso !== undefined ? r.rendimento_peso : 0
           })));
+
+          const { data: kData } = await supabase
+            .from('kits')
+            .select('*')
+            .eq('user_id', userId);
+          setKits(kData || []);
 
           if (loadedInsumos.length > 0) {
             const insumoIds = loadedInsumos.map(i => i.id);
@@ -571,7 +605,8 @@ export function useData(userId: string | null) {
       preco_pago,
       quantidade_embalagem,
       unidade,
-      tipo
+      tipo,
+      estoque_atual: 0
     };
 
     if (isPlaceholder) {
@@ -1400,10 +1435,180 @@ export function useData(userId: string | null) {
     };
   };
 
+  // 7. Ações e Cálculos de Kits
+  const addKit = async (nome: string, itens: KitItem[], preco_venda_praticado: number) => {
+    if (!userId) return;
+    const newKit: Omit<Kit, 'id'> = { user_id: userId, nome, itens, preco_venda_praticado };
+    if (isPlaceholder) {
+      const kitComId: Kit = { ...newKit, id: 'kit-' + Date.now() };
+      const updatedList = [...kits, kitComId];
+      setKits(updatedList);
+      localDb.setItem('precificaalim_kits', JSON.stringify(updatedList));
+    } else {
+      const { data, error } = await supabase.from('kits').insert([newKit]).select().single();
+      if (error) throw error;
+      if (data) setKits([...kits, data]);
+    }
+  };
+
+  const updateKit = async (id: string, nome: string, itens: KitItem[], preco_venda_praticado: number) => {
+    const updatedList = kits.map(k => k.id === id ? { ...k, nome, itens, preco_venda_praticado } : k);
+    setKits(updatedList);
+    if (isPlaceholder) {
+      localDb.setItem('precificaalim_kits', JSON.stringify(updatedList));
+    } else {
+      const { error } = await supabase.from('kits').update({ nome, itens, preco_venda_praticado }).eq('id', id);
+      if (error) throw error;
+    }
+  };
+
+  const deleteKit = async (id: string) => {
+    const updatedList = kits.filter(k => k.id !== id);
+    setKits(updatedList);
+    if (isPlaceholder) {
+      localDb.setItem('precificaalim_kits', JSON.stringify(updatedList));
+    } else {
+      const { error } = await supabase.from('kits').delete().eq('id', id);
+      if (error) throw error;
+    }
+  };
+
+  const getCalculosKit = (kit: Kit) => {
+    let custoTotal = 0;
+    let precoSugerido = 0;
+
+    kit.itens.forEach(item => {
+      if (item.tipo === 'receita') {
+        const rec = receitas.find(r => r.id === item.item_id);
+        if (rec) {
+          const calc = getCalculosReceita(rec);
+          custoTotal += calc.custoTotal * item.quantidade;
+          // Sugerindo o preço ideal da receita * quantidade
+          precoSugerido += calc.precoVendaIdeal * item.quantidade;
+        }
+      } else if (item.tipo === 'insumo') {
+        const ins = insumos.find(i => i.id === item.item_id);
+        if (ins && ins.quantidade_embalagem > 0) {
+          const custoUnit = ins.preco_pago / ins.quantidade_embalagem;
+          custoTotal += custoUnit * item.quantidade;
+          // Para insumos avulsos, adicionamos apenas o custo ao preço sugerido.
+          precoSugerido += custoUnit * item.quantidade;
+        }
+      }
+    });
+
+    const lucro = kit.preco_venda_praticado - custoTotal;
+    const margemReal = kit.preco_venda_praticado > 0 ? (lucro / kit.preco_venda_praticado) * 100 : 0;
+    
+    return {
+      custoTotal,
+      precoSugerido,
+      lucro,
+      margemReal
+    };
+  };
+
+  // 8. Estoque
+  const calcularEstoqueMinimo = (insumoId: string): number => {
+    let estoqueMinimo = 0;
+    receitas.forEach(receita => {
+      const ingrediente = receita.ingredientes.find(ing => ing.insumo_id === insumoId);
+      if (ingrediente) {
+        estoqueMinimo += ingrediente.quantidade;
+      }
+    });
+    return estoqueMinimo;
+  };
+
+  const registrarProducao = async (receitaId: string, quantidadeReceitas: number = 1) => {
+    const receita = receitas.find(r => r.id === receitaId);
+    if (!receita) return;
+
+    let insumosAtualizados = [...insumos];
+    const insumosParaAtualizar: { id: string, estoque_atual: number }[] = [];
+
+    receita.ingredientes.forEach(ing => {
+      const insumoIndex = insumosAtualizados.findIndex(i => i.id === ing.insumo_id);
+      if (insumoIndex !== -1) {
+        const insumo = insumosAtualizados[insumoIndex];
+        const estoqueAtual = insumo.estoque_atual || 0;
+        
+        insumosAtualizados[insumoIndex] = { ...insumo, estoque_atual: estoqueAtual - (ing.quantidade * quantidadeReceitas) };
+        insumosParaAtualizar.push({ id: insumo.id, estoque_atual: insumosAtualizados[insumoIndex].estoque_atual! });
+      }
+    });
+
+    setInsumos(insumosAtualizados);
+
+    if (isPlaceholder) {
+      localDb.setItem('precificaalim_insumos', JSON.stringify(insumosAtualizados));
+    } else {
+      for (const item of insumosParaAtualizar) {
+        await supabase.from('insumos').update({ estoque_atual: item.estoque_atual }).eq('id', item.id);
+      }
+    }
+  };
+
+  const registrarCompraInsumo = async (insumoId: string, quantidadeEmbalagensCompradas: number, novoPrecoPago: number) => {
+    const insumoIndex = insumos.findIndex(i => i.id === insumoId);
+    if (insumoIndex === -1) return;
+
+    const insumo = insumos[insumoIndex];
+    const qtdCompradaNaBase = quantidadeEmbalagensCompradas * insumo.quantidade_embalagem;
+    const novoEstoque = (insumo.estoque_atual || 0) + qtdCompradaNaBase;
+
+    let currentInsumos = [...insumos];
+    currentInsumos[insumoIndex] = {
+      ...insumo,
+      estoque_atual: novoEstoque,
+      preco_pago: novoPrecoPago
+    };
+    
+    setInsumos(currentInsumos);
+
+    if (isPlaceholder) {
+      localDb.setItem('precificaalim_insumos', JSON.stringify(currentInsumos));
+      
+      if (novoPrecoPago !== insumo.preco_pago) {
+        const novoHist: HistoricoPreco = {
+          id: 'hist-' + insumo.id + '-' + Date.now(),
+          insumo_id: insumo.id,
+          preco_pago: novoPrecoPago,
+          created_at: new Date().toISOString()
+        };
+        const updatedHist = [...historicoPrecos, novoHist];
+        setHistoricoPrecos(updatedHist);
+        localDb.setItem('precificaalim_historico', JSON.stringify(updatedHist));
+      }
+    } else {
+      await supabase.from('insumos').update({ 
+        estoque_atual: novoEstoque,
+        preco_pago: novoPrecoPago
+      }).eq('id', insumo.id);
+
+      if (novoPrecoPago !== insumo.preco_pago) {
+        const { data: histData } = await supabase
+          .from('historico_precos')
+          .insert([{
+            insumo_id: insumo.id,
+            preco_pago: novoPrecoPago,
+            created_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
+
+        if (histData) {
+          setHistoricoPrecos([...historicoPrecos, histData]);
+        }
+      }
+    }
+  };
+
   return {
     profile,
     insumos,
     receitas,
+    kits,
     historicoPrecos,
     custosItens,
     loading,
@@ -1417,8 +1622,15 @@ export function useData(userId: string | null) {
     addCustoItem,
     updateCustoItem,
     deleteCustoItem,
+    addKit,
+    updateKit,
+    deleteKit,
     getCalculosReceita,
+    getCalculosKit,
     getPrecosHistoricos,
+    calcularEstoqueMinimo,
+    registrarProducao,
+    registrarCompraInsumo,
     carregarInsumosTeste,
     limparECarregarInsumosTeste,
     limparTodosInsumos,

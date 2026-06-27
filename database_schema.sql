@@ -98,3 +98,16 @@ create trigger on_auth_user_created
 revoke execute on function public.handle_new_user() from public;
 revoke execute on function public.handle_new_user() from anon;
 revoke execute on function public.handle_new_user() from authenticated;
+
+-- Criação da tabela de kits/combos
+create table if not exists public.kits (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users not null,
+  nome text not null,
+  itens jsonb not null default '[]'::jsonb,
+  preco_venda_praticado numeric not null,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+alter table public.kits enable row level security;
+create policy "Usuários gerenciam apenas seus próprios kits" on public.kits for all using ( auth.uid() = user_id );
