@@ -54,6 +54,7 @@ function AppContent() {
   const [newReceitaTempo, setNewReceitaTempo] = useState(30);
   const [newReceitaMargem, setNewReceitaMargem] = useState(30);
   const [newReceitaPrecoVenda, setNewReceitaPrecoVenda] = useState(0);
+  const [isPrecoVendaEdited, setIsPrecoVendaEdited] = useState(false);
 
   const [newReceitaIngredientes, setNewReceitaIngredientes] = useState<{ insumo_id: string; vanity?: boolean; quantidade: number }[]>([]);
   const [selectedInsumoId, setSelectedInsumoId] = useState('');
@@ -219,13 +220,11 @@ function AppContent() {
     fator_perda: newReceitaPerda || 0
   });
 
-  /*
-    useEffect(() => {
-      if (!isPrecoVendaEdited && previewCalc.precoVendaIdeal > 0) {
-        setNewReceitaPrecoVenda(parseFloat(previewCalc.precoVendaIdeal.toFixed(2)));
-      }
-    }, [previewCalc.precoVendaIdeal, isPrecoVendaEdited]);
-    */
+  useEffect(() => {
+    if (!isPrecoVendaEdited && previewCalc.precoVendaIdeal > 0) {
+      setNewReceitaPrecoVenda(Number(previewCalc.precoVendaIdeal.toFixed(2)));
+    }
+  }, [previewCalc.precoVendaIdeal, isPrecoVendaEdited]);
 
   if (authLoading) {
     return (
@@ -318,6 +317,7 @@ function AppContent() {
     setNewReceitaPerda(0);
     setNewReceitaPeso(0);
     setNewReceitaIngredientes([]);
+    setIsPrecoVendaEdited(false);
   };
 
   // Ações de Importação de Planilha
@@ -1509,7 +1509,7 @@ function AppContent() {
                                     value={newReceitaPrecoVenda || ''}
                                     onChange={(e) => {
                                       setNewReceitaPrecoVenda(parseFloat(e.target.value) || 0);
-
+                                      setIsPrecoVendaEdited(true);
                                     }}
                                     required
                                   />
@@ -1627,6 +1627,7 @@ function AppContent() {
                                     setNewReceitaTempo(30);
                                     setNewReceitaMargem(30);
                                     setNewReceitaPrecoVenda(0);
+                                    setIsPrecoVendaEdited(false);
 
                                     setNewReceitaPerda(0);
                                     setNewReceitaPeso(0);
@@ -1669,6 +1670,7 @@ function AppContent() {
                                               setNewReceitaTempo(rec.tempo_preparo);
                                               setNewReceitaMargem(rec.margem_alvo);
                                               setNewReceitaPrecoVenda(rec.preco_venda_praticado);
+                                              setIsPrecoVendaEdited(true);
 
                                               setNewReceitaPerda(rec.fator_perda || 0);
                                               setNewReceitaPeso(rec.rendimento_peso || 0);
@@ -1693,6 +1695,7 @@ function AppContent() {
                                                 setNewReceitaTempo(30);
                                                 setNewReceitaMargem(30);
                                                 setNewReceitaPrecoVenda(0);
+                                                setIsPrecoVendaEdited(false);
 
                                                 setNewReceitaPerda(0);
                                                 setNewReceitaPeso(0);

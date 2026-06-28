@@ -51,6 +51,7 @@ export interface KitItem {
   tipo: 'receita' | 'insumo';
   item_id: string;
   quantidade: number;
+  unidade_medida?: 'inteiro' | 'porcao' | 'peso';
 }
 
 export interface Kit {
@@ -1482,9 +1483,15 @@ export function useData(userId: string | null) {
         const rec = receitas.find(r => r.id === item.item_id);
         if (rec) {
           const calc = getCalculosReceita(rec);
-          custoTotal += calc.custoTotal * item.quantidade;
-          // Sugerindo o preço ideal da receita * quantidade
-          precoSugerido += calc.precoVendaIdeal * item.quantidade;
+          let multiplicador = item.quantidade;
+          if (item.unidade_medida === 'porcao') {
+            multiplicador = item.quantidade / (rec.rendimento || 1);
+          } else if (item.unidade_medida === 'peso') {
+            multiplicador = item.quantidade / (rec.rendimento_peso || 1);
+          }
+          custoTotal += calc.custoTotal * multiplicador;
+          // Sugerindo o preço ideal da receita * multiplicador
+          precoSugerido += calc.precoVendaIdeal * multiplicador;
         }
       } else if (item.tipo === 'insumo') {
         const ins = insumos.find(i => i.id === item.item_id);

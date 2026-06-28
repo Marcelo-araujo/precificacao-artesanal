@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Kit, KitItem, Receita, Insumo } from '../hooks/useData';
 import { ArrowLeft, Save, Plus, Trash2, Calculator, Info, Package, AlertCircle } from 'lucide-react';
 
@@ -18,11 +18,21 @@ export function KitForm({ userId, receitas, insumos, initialKit, onSave, onCance
   const [itens, setItens] = useState<KitItem[]>(initialKit?.itens || []);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [hasManuallyEditedPrice, setHasManuallyEditedPrice] = useState(!!initialKit);
+
+  useEffect(() => {
+    if (!hasManuallyEditedPrice) {
+      const temp = { id: 'temp', user_id: 'temp', nome: '', itens, preco_venda_praticado: 0 };
+      const calc = getCalculosKit(temp);
+      setPrecoVenda(Number(calc.precoSugerido.toFixed(2)));
+    }
+  }, [itens, hasManuallyEditedPrice, getCalculosKit]);
 
   // Dropdown states for adding new items
   const [selectedItemType, setSelectedItemType] = useState<'receita' | 'insumo'>('receita');
   const [selectedItemId, setSelectedItemId] = useState('');
   const [selectedItemQtd, setSelectedItemQtd] = useState(1);
+  const [selectedUnidadeMedida, setSelectedUnidadeMedida] = useState<'inteiro' | 'porcao' | 'peso'>('inteiro');
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -38,9 +48,10 @@ export function KitForm({ userId, receitas, insumos, initialKit, onSave, onCance
       return;
     }
 
-    setItens([...itens, { tipo: selectedItemType, item_id: selectedItemId, quantidade: selectedItemQtd }]);
+    setItens([...itens, { tipo: selectedItemType, item_id: selectedItemId, quantidade: selectedItemQtd, unidade_medida: selectedUnidadeMedida }]);
     setSelectedItemId('');
     setSelectedItemQtd(1);
+    setSelectedUnidadeMedida('inteiro');
     setError('');
   };
 
@@ -142,7 +153,10 @@ export function KitForm({ userId, receitas, insumos, initialKit, onSave, onCance
                   min="0"
                   step="0.01"
                   value={precoVenda}
-                  onChange={(e) => setPrecoVenda(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    setPrecoVenda(parseFloat(e.target.value) || 0);
+                    setHasManuallyEditedPrice(true);
+                  }}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all font-medium text-indigo-700"
                 />
               </div>
@@ -202,6 +216,17 @@ export function KitForm({ userId, receitas, insumos, initialKit, onSave, onCance
                     onChange={(e) => setSelectedItemQtd(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-500 outline-none"
                   />
+                  {selectedItemType === 'receita' && (
+                    <select
+                      value={selectedUnidadeMedida}
+                      onChange={(e) => setSelectedUnidadeMedida(e.target.value as any)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-500 outline-none"
+                    >
+                      <option value="inteiro">Receita(s) Inteira(s)</option>
+                      <option value="porcao">Unidade(s) / Porção(ões)</option>
+                      <option value="peso">Grama(s) / Peso</option>
+                    </select>
+                  )}
                   <button
                     type="button"
                     onClick={handleAddItem}
@@ -229,7 +254,9 @@ export function KitForm({ userId, receitas, insumos, initialKit, onSave, onCance
                         </div>
                         <div>
                           <p className="font-semibold text-slate-800">{nome || 'Item não encontrado'}</p>
-                          <p className="text-xs text-slate-500 uppercase">{item.tipo}</p>
+                          <p className="text-xs text-slate-500 uppercase">
+                            {item.tipo} {item.tipo === 'receita' && item.unidade_medida && item.unidade_medida !== 'inteiro' ? `(${item.unidade_medida})` : ''}
+                          </p>
                         </div>
                       </div>
                       
@@ -244,6 +271,9 @@ export function KitForm({ userId, receitas, insumos, initialKit, onSave, onCance
                             onChange={(e) => handleUpdateItemQtd(index, parseFloat(e.target.value) || 1)}
                             className="w-20 px-2 py-1 rounded-lg border border-slate-200 text-sm focus:border-indigo-500 outline-none text-center"
                           />
+                          {item.unidade_medida === 'peso' && <span className="text-sm font-medium text-slate-500">g</span>}
+                          {item.unidade_medida === 'porcao' && <span className="text-sm font-medium text-slate-500">un</span>}
+                          {(!item.unidade_medida || item.unidade_medida === 'inteiro') && <span className="text-sm font-medium text-slate-500">x</span>}
                         </div>
                         <button
                           onClick={() => handleRemoveItem(index)}
