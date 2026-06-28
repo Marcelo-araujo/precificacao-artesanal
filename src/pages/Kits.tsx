@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Package, Plus, Edit2, Trash2, Calculator, DollarSign, PackageSearch, HelpCircle, X, Gift, PartyPopper, Utensils } from 'lucide-react';
+import { Package, Plus, Edit2, Trash2, Calculator, DollarSign, HelpCircle, X, Gift, PartyPopper, Utensils } from 'lucide-react';
 import type { Kit, KitItem, Receita, Insumo } from '../hooks/useData';
 import { KitForm } from './KitForm';
 
